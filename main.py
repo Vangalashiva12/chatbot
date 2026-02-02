@@ -36,9 +36,19 @@ prompt = ChatPromptTemplate.from_messages([
 chain = prompt | llm | StrOutputParser()
 
 print("Hello, iam Dupki")
-history = []
-def chat(user_in, hist):
-    print(user_in,hist)
+
+#history = []
+
+def chat(user_input, hist):
+    print(user_input,hist)
+
+    langchain_history = []
+    for item in hist:
+        if item["role"] == "user":
+            langchain_history.append(HumanMessage(content=item["content"]))
+        elif item["role"] == "assistant":
+            langchain_history.append(AIMessage(content=item["content"]))
+    response = chain.invoke({"input": user_input, "history": langchain_history} )
 
 # while True:
 #     user_input = input("You:")
@@ -49,6 +59,13 @@ def chat(user_in, hist):
 #     print(f"Dupki: {response}")
 #     history.append(HumanMessage(content=user_input))
 #     history.append(AIMessage(content=response))
+
+    return "",hist + [{"role":"user", "content": user_input},
+                      {"role":"assistant", "content": response}]
+
+
+def clear_chat():
+    return "",[]
 
 
 page = gr.Blocks(
@@ -64,10 +81,12 @@ with page:
         Dupki chats with you same as Albert Einstein.
         """
     )
-    chatbot = gr.Chatbot()
-    msg = gr.Textbox()
-    msg.submit(chat,[msg,chatbot],[])
+    chatbot = gr.Chatbot(avatar_images=[None,'einstein.png'],
+                         show_label=False)
+    msg = gr.Textbox(show_label=False, placeholder="Ask whatever you like")
+    msg.submit(chat,[msg,chatbot],[msg,chatbot])
     clear = gr.Button("Clear Chat")
+    clear.click(clear_chat, outputs=[msg,chatbot])
 
 
-page.launch(theme=gr.themes.Soft())
+page.launch(theme=gr.themes.Soft(),share=True)
